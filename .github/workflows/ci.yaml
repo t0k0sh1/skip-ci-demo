@@ -1,0 +1,49 @@
+name: Go CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check-revert:
+    runs-on: ubuntu-latest
+    outputs:
+      skip_ci: ${{ steps.check.outputs.skip_ci }}
+    steps:
+      - name: Check if 'revert' label is present
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const hasSkipCI = labels.data.some(label => label.name === 'revert');
+            core.setOutput('skip_ci', hasSkipCI);
+
+  go-ci:
+    name: Build and Test
+    needs: check-skip-ci
+    if: needs.check-skip-ci.outputs.skip_ci != 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21" # 必要に応じてバージョンを変更
+
+      - name: Download dependencies
+        run: go mod tidy
+
+      - name: Build
+        run: go build ./...
+
+      - name: Run tests
+        run: go test -v ./...
