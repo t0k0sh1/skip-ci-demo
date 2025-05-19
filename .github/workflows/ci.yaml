@@ -1,33 +1,14 @@
-name: Go CI
+name: Go CI on merge to main
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
 
 jobs:
-  check-revert:
-    runs-on: ubuntu-latest
-    outputs:
-      skip_ci: ${{ steps.check.outputs.skip_ci }}
-    steps:
-      - name: Check if 'revert' label is present
-        id: check
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const labels = await github.rest.issues.listLabelsOnIssue({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            const hasSkipCI = labels.data.some(label => label.name === 'revert');
-            core.setOutput('skip_ci', hasSkipCI);
-
   go-ci:
-    name: Build and Test
-    needs: check-revert
-    if: needs.check-skip-ci.outputs.skip_ci != 'true'
+    if: github.event.pull_request.merged == true && !contains(github.event.pull_request.title, '[revert]')
     runs-on: ubuntu-latest
 
     steps:
@@ -37,7 +18,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21" # 必要に応じてバージョンを変更
+          go-version: "1.21"
 
       - name: Download dependencies
         run: go mod tidy
