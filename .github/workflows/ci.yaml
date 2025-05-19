@@ -26,7 +26,7 @@ jobs:
 
   go-ci:
     name: Build and Test
-    needs: check-skip-ci
+    needs: check-revert
     if: needs.check-skip-ci.outputs.skip_ci != 'true'
     runs-on: ubuntu-latest
 
